@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6b3fa0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Consulentes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Meus Consulentes</title>
+<style>
+:root{--bg:#f6f2ec;--card:#fff;--tx:#2a2233;--mut:#7a7185;--ac:#6b3fa0;--ac2:#e9defa;--bd:#e3dbd0;--ok:#2f8f5b;--warn:#c4571a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17131d;--card:#221c2c;--tx:#efe9f7;--mut:#a79fb4;--ac:#b48cf0;--ac2:#33264a;--bd:#352c44;--ok:#5fcf93;--warn:#f0905a}}
+:root[data-theme="dark"]{--bg:#17131d;--card:#221c2c;--tx:#efe9f7;--mut:#a79fb4;--ac:#b48cf0;--ac2:#33264a;--bd:#352c44;--ok:#5fcf93;--warn:#f0905a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px}
+.sub{color:var(--mut);font-size:14px;margin-bottom:14px}
+.bar{display:flex;gap:8px;margin-bottom:10px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--ac);color:#fff;font-weight:600}
+button.sec{background:var(--ac2);color:var(--ac)}
+button.del{background:transparent;color:var(--warn);padding:6px 8px;font-weight:500}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:var(--card);color:var(--tx);border:1px solid var(--bd);padding:6px 12px;border-radius:99px;font-weight:500;font-size:14px}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer}
+.card b{font-size:16px}
+.meta{font-size:13px;color:var(--mut)}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--ac2);color:var(--ac);display:inline-block;margin-top:4px;margin-right:4px}
+.tag.w{background:#fde6d8;color:var(--warn)}
+.wa{background:var(--ok);padding:8px 12px;font-size:14px;text-decoration:none;color:#fff;border-radius:10px;font-weight:600;white-space:nowrap}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:16px;z-index:9}
+.modal.open{display:flex}
+.box{background:var(--bg);border-radius:16px;padding:16px;width:100%;max-width:560px;margin:auto}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.sess{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14px}
+.sess .h{display:flex;justify-content:space-between;gap:8px}
+h3{margin:18px 0 0;font-size:16px}
+.ed{display:none}.editing .ed{display:block}.editing .row.ed{display:flex}
+.note{font-size:12px;color:var(--mut);margin-top:16px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔮 Meus Consulentes</h1>
+  <div class="sub" id="count"></div>
+  <div class="bar">
+    <input id="q" placeholder="Buscar por nome ou telefone…">
+    <button id="add">+ Novo</button>
+  </div>
+  <button id="agb" style="width:100%;margin-bottom:10px">📅 Agenda</button>
+  <div class="row" style="margin-bottom:10px"><button id="promo" class="sec">📣 Promoção mensal</button><button id="tir" class="sec">💬 Tiragens</button></div>
+  <div class="row" style="margin-bottom:10px"><button id="imp" class="sec">📥 Importar conversa</button><button id="bk" class="sec">💾 Backup</button></div>
+  <div class="chips" id="chips"></div>
+  <div id="list"></div>
+  <div class="note" id="note"></div>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="box"></div></div>
+
+<script>
+var DEFAULT_PROMO="Oi, {nome}, tudo bem? 🌙\n\nAqui é a Kiara. Pensei em você esses dias e quis saber como você está. Já faz um tempinho desde a nossa última conversa!\n\nA mesa está aberta para a *Tiragem Mensal de Outubro* ✨ Nela eu mapeio como tendem a ser as energias do seu mês em amor, trabalho, finanças, saúde/energia, desafios, oportunidades e o conselho final do baralho. É a leitura ideal para seguir o mês sabendo onde pisa 👀\n\n📱 O atendimento é 100% online: você recebe a foto nítida da mesa e áudios explicativos detalhados aqui no WhatsApp, para ouvir no seu tempo.\n\n💜 Tiragem Mensal de Outubro: R$ 40,00\n(Também estou com mesa aberta para Pergunta Objetiva por R$ 10,00)\n\nSe quiser garantir a sua, é só me responder aqui! 🔮";
+var TIR=[{"id": "geral1", "label": "Geral · curta", "text": "Oi, {nome}, tudo bem? 🌙 Aqui é a Kiara.\n\nPensei em você esses dias e quis saber como você está! Já faz um tempinho desde a nossa última conversa.\n\nMinha mesa está aberta, e tenho tiragens para vários momentos: amor, trabalho e dinheiro, decisões, paz mental e autoconhecimento 🔮\n\nMe conta: o que anda pedindo mais atenção na sua vida agora? Com isso eu te indico a tiragem que mais combina com o seu momento 💜"}, {"id": "geral2", "label": "Geral · com valores", "text": "Oi, {nome}, tudo bem? 🌙 Aqui é a Kiara.\n\nPensei em você esses dias! Minha mesa está aberta, e se você quiser uma orientação, tenho tiragens para cada momento:\n\n🎯 *Pergunta Objetiva*: R$ 10,00 (combo 3 por R$ 25,00)\n💖 *Amor*: a partir de R$ 35,00\n💼 *Trabalho e finanças*: a partir de R$ 25,00\n🧭 *Orientação e paz mental*: a partir de R$ 25,00\n☯️ *Autoconhecimento*: R$ 40,00\n👑 *Mesa Real* (visão completa da vida, até 1 ano): R$ 80,00\n\nTudo 100% online, com foto da mesa e áudios explicativos no seu WhatsApp ✨\n\nSe não souber qual escolher, me conta o que está sentindo e eu te indico a melhor para você 💜"}, {"id": "amor", "label": "Amor", "text": "Oi, {nome}, tudo bem? 🌙 Aqui é a Kiara.\n\nPensei em você esses dias! Se o coração anda cheio de dúvidas, a mesa está aberta para te ajudar 💜\n\n💘 *Flecha do Cupido* (6 cartas): o que a pessoa realmente sente e pretende com você — R$ 35,00\n🏛️ *Templo de Afrodite* (7 cartas): análise de casal, o que cada um sente e o futuro da união — R$ 40,00\n💄 *Glamour & Magnetismo* (10 cartas): amor-próprio, seu poder de atração e seu brilho pessoal — R$ 45,00\n\nAtendimento 100% online, com foto da mesa e áudios explicativos no WhatsApp. Se quiser, me responde aqui com a tiragem que você escolheu! 🔮"}, {"id": "trabalho", "label": "Trabalho e dinheiro", "text": "Oi, {nome}! Aqui é a Kiara 🔮\n\nComo estão o trabalho e o dinheiro por aí? Se estiver sentindo que algo travou, a mesa está aberta 💼\n\n🏹 *Análise de Dívidas & Soluções* (4 cartas): causa real, solução prática e um alerta importante — R$ 25,00\n💼 *Estagnação Profissional* (6 cartas): o motivo do bloqueio e o primeiro passo — R$ 30,00\n💼 *Tiragem para Carreira* (5 cartas): o que joga a favor, o que evitar e a previsão dos próximos meses — R$ 35,00\n\nTudo online, com foto da mesa e áudios detalhados no seu WhatsApp, pra você ouvir no seu tempo 🌙\n\nMe responde aqui com a que mais combina com você! 💜"}, {"id": "orientacao", "label": "Orientação e paz mental", "text": "Oi, {nome}, tudo bem? 🌙 Aqui é a Kiara.\n\nSe a cabeça anda a mil ou você está diante de uma escolha difícil, a mesa pode te ajudar a enxergar o caminho ✨\n\n💡 *Conselhos & Orientação* (4 cartas): o que fazer, o que evitar e o próximo passo — R$ 25,00\n🕊️ *São Clemente* (5 cartas): paz mental, da origem do problema à resolução — R$ 30,00\n🏰 *O Jogo da Torre* (9 cartas): para quando você se sente travado(a), com a causa real e a solução final — R$ 50,00\n\nAtendimento 100% online, com foto da mesa e áudios explicativos. Quer que eu reserve a sua? 🔮"}, {"id": "auto", "label": "Autoconhecimento", "text": "Oi, {nome}! Aqui é a Kiara 🔮\n\nQuer um momento para olhar para dentro? Tenho uma tiragem de autoconhecimento aberta ☯️\n\n☯️ *Consciência / Luz e Sombra* (7 cartas): revela seu equilíbrio, seu lado luminoso, seu lado sombra e conselhos de evolução para o seu momento — R$ 40,00\n\nTudo online, com foto da mesa e áudios explicativos no seu WhatsApp 🌙\n\nSe sentir que é a hora, me responde aqui! 💜"}, {"id": "mesa", "label": "Mesa Real", "text": "Oi, {nome}! Aqui é a Kiara 🔮\n\nSe você quer uma visão completa da sua vida, a *Mesa Real* está disponível 👑\n\n🃏 São 36 cartas abertas para cruzar amor, dinheiro, trabalho, família, saúde e espiritualidade, com a previsão para até 1 ano.\n\nVocê recebe a foto panorâmica da mesa completa e uma sequência de áudios detalhados, setor por setor 🌙\n\n💜 Valor: R$ 80,00\n\nSe quiser garantir a sua, me responde aqui!"}, {"id": "pergunta", "label": "Pergunta Objetiva", "text": "Oi, {nome}, tudo bem? 🌙 Aqui é a Kiara.\n\nTem uma dúvida pontual te rondando? Posso te ajudar com uma resposta rápida e objetiva 🎯\n\n🔮 *Pergunta Objetiva*\n• 1 pergunta: R$ 10,00\n• Combo 3 perguntas: R$ 25,00\n\nVale para amor, trabalho ou decisão rápida, com resposta em áudio no seu WhatsApp 💜\n\nMe manda sua pergunta aqui que eu abro a mesa!"}];
+var tirTexts={}, tirSel='geral1';
+var agenda=[], agStore=null, agView='list', agEdit=null;
+var promoText=DEFAULT_PROMO, cfg=null, promoOpen=false;
+var clients=[], cur=null, filter='todos', store=null, usingDb=false;
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function days(iso){if(!iso)return null;var a=new Date(iso+'T00:00:00'),b=new Date(today()+'T00:00:00');return Math.round((b-a)/864e5)}
+function fmt(iso){if(!iso)return '';var p=iso.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function lastSess(c){var s=(c.sessions||[]).slice().sort(function(a,b){return b.date<a.date?-1:1});return s[0]}
+function ago(n){if(n===null)return 'sem atendimento';if(n===0)return 'hoje';if(n===1)return 'ontem';if(n<0)return 'em '+(-n)+' dias';return 'há '+n+' dias'}
+function uid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* ---------- armazenamento ---------- */
+var LS='crm-cartomante-v1';
+function lsLoad(){try{return JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){return []}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify(clients))}catch(e){}}
+function save(c){
+  if(usingDb){store.doc(c.id).set(c).catch(function(){alert('Não consegui salvar. Tente de novo.')});}
+  else{var i=clients.findIndex(function(x){return x.id===c.id});if(i>=0)clients[i]=c;else clients.push(c);lsSave();render()}
+}
+function remove(id){
+  if(usingDb){store.doc(id).delete()}
+  else{clients=clients.filter(function(x){return x.id!==id});lsSave();render()}
+}
+async function init(){
+  try{
+    var db=await claude.use('db'), user=await claude.use('user');
+    if(db&&user){
+      var id=await user.id();
+      store=db.collection('data/users/'+id+'/clients');
+      usingDb=true;
+      agStore=db.collection('data/users/'+id+'/agenda');
+      agStore.onSnapshot(function(sn){agenda=sn.docs.map(function(d){var x=d.data();x.id=d.id;return x});agLabel();if($('modal').classList.contains('open')&&agView==='list'&&$('ag_head'))drawAgenda()},function(){});
+      cfg=db.collection('data/users/'+id+'/config');loadPromo();loadTir();
+      store.onSnapshot(function(s){clients=s.docs.map(function(d){var x=d.data();x.id=d.id;return x});render();if(cur&&$('modal').classList.contains('open')){}},function(){});
+      $('note').textContent='Seus dados ficam salvos na sua conta, só você vê.';
+      return;
+    }
+  }catch(e){}
+  clients=lsLoad();try{agenda=JSON.parse(localStorage.getItem(LS+'-agenda')||'[]')}catch(e){}loadPromo();loadTir();render();
+  $('note').textContent='Dados salvos neste navegador/aparelho.';
+}
+
+function loadPromo(){
+  if(usingDb){cfg.doc('promo').get().then(function(d){if(d.exists&&d.data().texto)promoText=d.data().texto}).catch(function(){})}
+  else{try{promoText=localStorage.getItem(LS+'-promo')||DEFAULT_PROMO}catch(e){}}
+}
+function tirText(){return tirTexts[tirSel]!==undefined?tirTexts[tirSel]:TIR.find(function(x){return x.id===tirSel}).text}
+function loadTir(){
+  if(usingDb){cfg.doc('tiragens').get().then(function(d){if(d.exists&&d.data().textos)tirTexts=d.data().textos}).catch(function(){})}
+  else{try{tirTexts=JSON.parse(localStorage.getItem(LS+'-tir')||'{}')}catch(e){}}
+}
+function saveTir(){
+  if(usingDb){cfg.doc('tiragens').set({textos:tirTexts}).catch(function(){})}
+  else{try{localStorage.setItem(LS+'-tir',JSON.stringify(tirTexts))}catch(e){}}
+}
+function savePromo(){
+  if(usingDb){cfg.doc('promo').set({texto:promoText}).catch(function(){})}
+  else{try{localStorage.setItem(LS+'-promo',promoText)}catch(e){}}
+}
+
+/* ---------- lista ---------- */
+var FILTERS=[['todos','Todos'],['voltar','Chamar de volta (30+ dias)'],['marcado','Com retorno marcado']];
+function agLabel(){var b=$('agb');if(!b)return;var n=agenda.filter(function(a){return a.status!=='feito'&&a.date===today()}).length;b.textContent='📅 Agenda'+(n?' ('+n+' hoje)':'')}
+function render(){agLabel();
+  $('count').textContent=clients.length+(clients.length===1?' consulente cadastrado':' consulentes cadastrados');
+  $('chips').innerHTML=FILTERS.map(function(f){return '<button class="chip '+(filter===f[0]?'on':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>'}).join('');
+  var q=$('q').value.trim().toLowerCase();
+  var list=clients.filter(function(c){
+    if(q&&(c.nome||'').toLowerCase().indexOf(q)<0&&(c.tel||'').indexOf(q)<0)return false;
+    var l=lastSess(c),n=l?days(l.date):null;
+    if(filter==='voltar')return n!==null&&n>=30;
+    if(filter==='marcado')return !!c.retorno;
+    return true;
+  });
+  list.sort(function(a,b){
+    if(filter==='marcado')return (a.retorno||'')<(b.retorno||'')?-1:1;
+    var la=lastSess(a),lb=lastSess(b);
+    return ((la&&la.date)||'')<((lb&&lb.date)||'')?-1:1;
+  });
+  $('list').innerHTML=list.length?list.map(function(c){
+    var l=lastSess(c),n=l?days(l.date):null,tags='';
+    tags+='<span class="tag">'+(c.sessions||[]).length+' atendimento(s)</span>';
+    if(c.retorno){var r=days(c.retorno);tags+='<span class="tag '+(r>=0?'w':'')+'">retorno: '+fmt(c.retorno)+'</span>'}
+    var wa=c.tel?'<a class="wa" data-wa="1" target="_blank" rel="noopener" href="https://wa.me/'+waNum(c.tel)+'">WhatsApp</a>':'';
+    return '<div class="card" data-id="'+c.id+'"><div><b>'+esc(c.nome)+'</b><div class="meta">Último: '+(l?fmt(l.date)+' ('+ago(n)+')':'—')+'</div>'+tags+'</div>'+wa+'</div>';
+  }).join(''):'<div class="empty">'+(clients.length?'Nenhum resultado.':'Nenhum consulente ainda. Toque em “+ Novo” para começar.')+'</div>';
+}
+function waNum(t){var d=String(t).replace(/\D/g,'');if(d.length<=11)d='55'+d;return d}
+
+/* ---------- catálogo ---------- */
+var CAT=[
+ {n:'Pergunta Objetiva (1 pergunta)',v:'10',k:['pergunta objetiva','pergunta express','1 pergunta']},
+ {n:'Combo 3 Perguntas',v:'25',k:['combo','3 perguntas']},
+ {n:'Flecha do Cupido',v:'35',k:['flecha','cupido']},
+ {n:'Templo de Afrodite',v:'40',k:['afrodite']},
+ {n:'Glamour & Magnetismo',v:'45',k:['glamour','magnetismo']},
+ {n:'Análise de Dívidas',v:'25',k:['divida']},
+ {n:'Estagnação Profissional',v:'30',k:['estagnacao']},
+ {n:'Tiragem para Carreira',v:'35',k:['carreira']},
+ {n:'Conselhos & Orientação',v:'25',k:['conselho','orientacao','decisoes']},
+ {n:'São Clemente (Paz Mental)',v:'30',k:['clemente','paz mental']},
+ {n:'O Jogo da Torre',v:'50',k:['torre','resolucao']},
+ {n:'Consciência / Luz e Sombra',v:'40',k:['consciencia','luz e sombra','sombra','compulso']},
+ {n:'Mesa Real / Grand Tableau',v:'80',k:['mesa real','grand tableau']},
+ {n:'Tiragem Mensal',v:'40',k:['mensal']},
+ {n:'Pergunta Objetiva',v:'10',k:['pergunta']}
+];
+function norm(x){return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function matchCat(t){var n=norm(t);for(var i=0;i<CAT.length;i++)for(var k=0;k<CAT[i].k.length;k++)if(n.indexOf(CAT[i].k[k])>=0)return CAT[i];return null}
+function catOptions(){return '<option value="">Escolha a tiragem…</option>'+CAT.slice(0,14).map(function(c){return '<option value="'+esc(c.n)+'">'+esc(c.n)+' · R$ '+c.v+'</option>'}).join('')+'<option value="__outra">Outra (digitar)</option>'}
+
+/* ---------- importar ---------- */
+var RE=/^\[?(\d{1,2})\/(\d{1,2})\/(\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*(?:[ap]\.?m\.?)?\]?\s*-?\s*([^:]{1,60}?):\s(.*)$/i;
+function parseChat(text,fname){
+  text=text.replace(/[\u200e\u200f]/g,'').replace(/[\u202f\u00a0]/g,' ');
+  var msgs=[],last=null;
+  text.split(/\r?\n/).forEach(function(line){
+    var m=RE.exec(line);
+    if(m){
+      var y=+m[3];if(y<100)y+=2000;
+      last={date:y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0'),who:m[6].trim(),body:m[7]};
+      msgs.push(last);
+    }else if(last){last.body+='\n'+line}
+  });
+  var fm=/(?:Conversa do WhatsApp com|WhatsApp Chat with)\s+(.+?)(?:\.txt)?$/i.exec(fname||'');
+  var who={};msgs.forEach(function(m){who[m.who]=1});var names=Object.keys(who);
+  var nome=fm?fm[1].trim():(names[0]||'');
+  var tel='';
+  if(/^\+?[\d\s\-()]{8,}$/.test(nome)){tel=nome.replace(/\D/g,'');nome=''}
+  var hits=[],seen={};
+  msgs.forEach(function(m){
+    var h=/tiragem\s*[:\-–]\s*([^\n]+)/i.exec(m.body);
+    if(!h)return;
+    var raw=h[1].trim(),c=matchCat(raw),tipo=c?c.n:raw,key=m.date+'|'+tipo;
+    if(seen[key])return;seen[key]=1;
+    hits.push({date:m.date,tipo:tipo,valor:c?c.v:'',on:true});
+  });
+  var lastDate=msgs.length?msgs[msgs.length-1].date:'';
+  if(!hits.length&&lastDate)hits.push({date:lastDate,tipo:'Atendimento (importado)',valor:'',on:false,fb:true});
+  return {fname:fname,nome:nome,tel:tel,count:msgs.length,hits:hits};
+}
+var impList=[];
+function openImp(){
+  cur=null;impList=[];
+  $('box').innerHTML='<h2 style="margin:0 0 4px">📥 Importar conversa do WhatsApp</h2>'+
+  '<div class="meta">No WhatsApp Business: abra a conversa → ⋮ (ou nome do contato) → <b>Exportar conversa</b> → <b>Sem mídia</b>. Salve o arquivo .txt e escolha abaixo (pode escolher vários).</div>'+
+  '<div class="meta" style="margin-top:6px">Para o CRM anotar a tiragem sozinho, escreva nas leituras uma linha como <b>Tiragem: Flecha do Cupido</b>. Sem essa linha, você escolhe se quer registrar um atendimento na data da última mensagem.</div>'+
+  '<label>Arquivo(s) .txt</label><input id="imp_file" type="file" accept=".txt,text/plain" multiple>'+
+  '<div id="imp_prev"></div>'+
+  '<div class="row" style="margin-top:18px"><button id="imp_go" style="display:none">Importar</button><button class="sec" id="imp_close">Fechar</button></div>';
+  $('modal').classList.add('open');
+}
+function drawImp(){
+  $('imp_prev').innerHTML=impList.map(function(r,i){
+    return '<div class="sess"><b>'+esc(r.fname)+'</b><div class="meta">'+r.count+' mensagens lidas</div>'+
+    '<div class="row"><div><label>Nome</label><input id="i_n'+i+'" value="'+esc(r.nome)+'" placeholder="Nome do consulente"></div><div><label>WhatsApp</label><input id="i_t'+i+'" value="'+esc(r.tel)+'"></div></div>'+
+    (r.hits.length?r.hits.map(function(h,j){return '<label style="display:flex;gap:8px;align-items:center;color:var(--tx);margin-top:8px"><input type="checkbox" style="width:auto" id="i_h'+i+'_'+j+'"'+(h.on?' checked':'')+'> '+fmt(h.date)+' · '+esc(h.tipo)+(h.valor?' · R$ '+h.valor:'')+(h.fb?' <span class="meta">(sem linha “Tiragem:”)</span>':'')+'</label>'}).join(''):'<div class="meta" style="margin-top:8px">Nenhuma mensagem encontrada neste arquivo.</div>')+'</div>';
+  }).join('');
+  $('imp_go').style.display=impList.length?'':'none';
+}
+function runImport(){
+  var added=0,ncli=0;
+  for(var i=0;i<impList.length;i++){
+    var r=impList[i],nome=$('i_n'+i).value.trim(),tel=$('i_t'+i).value.trim();
+    if(!nome){alert('Coloque o nome do consulente do arquivo "'+r.fname+'".');return}
+    var d8=tel.replace(/\D/g,'').slice(-8);
+    var c=clients.find(function(x){return (d8.length===8&&(x.tel||'').replace(/\D/g,'').slice(-8)===d8)||norm(x.nome)===norm(nome)});
+    c=c?JSON.parse(JSON.stringify(c)):{id:uid(),nome:nome,tel:tel,nasc:'',retorno:'',obs:'',sessions:[]};
+    if(!c.tel&&tel)c.tel=tel;
+    c.sessions=c.sessions||[];
+    r.hits.forEach(function(h,j){
+      if(!$('i_h'+i+'_'+j).checked)return;
+      if(c.sessions.some(function(s){return s.date===h.date&&s.tipo===h.tipo}))return;
+      c.sessions.push({id:uid(),date:h.date,tipo:h.tipo,valor:h.valor,nota:''});added++;
+    });
+    save(c);ncli++;
+  }
+  closeModal();alert('Pronto! '+added+' atendimento(s) registrado(s) em '+ncli+' consulente(s).');
+}
+
+/* ---------- backup ---------- */
+function bkData(){return JSON.stringify({app:'crm-cartomante',v:1,quando:today(),clients:clients,agenda:agenda,promo:promoText,tir:tirTexts})}
+function openBk(){
+  cur=null;
+  $('box').innerHTML='<h2 style="margin:0 0 4px">💾 Backup</h2>'+
+  '<div class="meta">Uma cópia de todos os seus dados: consulentes, atendimentos, agenda e textos. Use para guardar com segurança ou para levar para outro aparelho.</div>'+
+  '<div class="row" style="margin-top:10px"><button id="bk_copy">Copiar backup</button><button class="sec" id="bk_dl">Baixar arquivo</button></div>'+
+  '<label>Restaurar: cole o backup aqui ou escolha o arquivo</label><textarea id="bk_txt" placeholder="Cole aqui o backup copiado"></textarea>'+
+  '<input id="bk_file" type="file" accept=".json,application/json" style="margin-top:6px">'+
+  '<button id="bk_go" class="sec" style="width:100%;margin-top:8px">Restaurar</button>'+
+  '<div class="row" style="margin-top:18px"><button class="sec" id="bk_close">Fechar</button></div>';
+  $('modal').classList.add('open');
+}
+function bkRestore(){
+  var d;try{d=JSON.parse($('bk_txt').value)}catch(e){alert('Esse texto não parece um backup válido.');return}
+  if(!d||d.app!=='crm-cartomante'||!Array.isArray(d.clients)){alert('Esse texto não parece um backup do CRM.');return}
+  var ag=Array.isArray(d.agenda)?d.agenda:[];
+  if(!confirm('Restaurar '+d.clients.length+' consulente(s) e '+ag.length+' agendamento(s)? Cadastros iguais serão substituídos pelos do backup.'))return;
+  d.clients.forEach(function(c){save(c)});
+  ag.forEach(function(a){saveAg(a)});
+  if(d.promo){promoText=d.promo;savePromo()}
+  if(d.tir){tirTexts=d.tir;saveTir()}
+  render();closeModal();alert('Backup restaurado!');
+}
+document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t.id==='bk'){openBk();return}
+  if(t.id==='bk_close'){closeModal();return}
+  if(t.id==='bk_copy'){copyText(bkData());t.textContent='Copiado ✓';return}
+  if(t.id==='bk_dl'){try{var u=URL.createObjectURL(new Blob([bkData()],{type:'application/json'}));var a=document.createElement('a');a.href=u;a.download='backup-crm-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}catch(x){}return}
+  if(t.id==='bk_go'){bkRestore();return}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='bk_file'&&e.target.files[0])e.target.files[0].text().then(function(tx){$('bk_txt').value=tx});
+});
+
+/* ---------- agenda ---------- */
+function saveAg(a){
+  var i=agenda.findIndex(function(x){return x.id===a.id});if(i>=0)agenda[i]=a;else agenda.push(a);
+  if(usingDb){agStore.doc(a.id).set(a).catch(function(){alert('Não consegui salvar o agendamento.')})}
+  else{try{localStorage.setItem(LS+'-agenda',JSON.stringify(agenda))}catch(e){}}
+  agLabel();
+}
+function removeAg(id){
+  agenda=agenda.filter(function(x){return x.id!==id});
+  if(usingDb){agStore.doc(id).delete()}
+  else{try{localStorage.setItem(LS+'-agenda',JSON.stringify(agenda))}catch(e){}}
+  agLabel();
+}
+function agDay(d){
+  var n=days(d),w=new Date(d+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'long'});
+  if(n===0)return 'Hoje · '+fmt(d);if(n===-1)return 'Amanhã · '+fmt(d);
+  if(n>0)return '⚠️ Atrasado · '+fmt(d);
+  return w.charAt(0).toUpperCase()+w.slice(1)+' · '+fmt(d);
+}
+function openAgenda(){cur=null;agView='list';drawAgenda();$('modal').classList.add('open')}
+function drawAgenda(){
+  agView='list';
+  var up=agenda.filter(function(a){return a.status!=='feito'}).sort(function(a,b){
+    var ka=a.date+(a.hora||'99:99'),kb=b.date+(b.hora||'99:99');return ka<kb?-1:ka>kb?1:0});
+  var html='<div id="ag_head" class="row" style="align-items:center"><h2 style="margin:0">📅 Agenda</h2><button id="ag_new" style="flex:none">+ Novo agendamento</button></div>'+
+    '<div class="meta" style="margin-top:6px">Leituras acontecem após as 20h. Sem horário = entra na fila do dia.</div>';
+  if(!up.length)html+='<div class="empty">Nenhum agendamento. Toque em “+ Novo agendamento”.</div>';
+  var last='';
+  up.forEach(function(a){
+    if(a.date!==last){last=a.date;html+='<h3>'+agDay(a.date)+'</h3>'}
+    var c=clients.find(function(x){return x.id===a.clientId})||{nome:a.nome,tel:a.tel};
+    var tel=c.tel||a.tel;
+    html+='<div class="sess"><div class="h"><div><b>'+esc(c.nome||a.nome)+'</b><div class="meta">'+(a.hora?a.hora+' · ':'fila · ')+esc(a.tipo)+(a.valor?' · R$ '+esc(a.valor):'')+'</div>'+
+    '<span class="tag '+(a.pago?'':'w')+'">'+(a.pago?'💰 Pix confirmado':'⏳ falta o Pix')+'</span></div></div>'+
+    (a.tema?'<div class="meta" style="white-space:pre-wrap;margin-top:4px">'+esc(a.tema)+'</div>':'')+
+    '<div class="row" style="margin-top:8px;flex-wrap:wrap">'+
+    '<button data-agdone="'+a.id+'" style="padding:8px">✓ Feita</button>'+
+    (tel?'<a class="wa" data-agsend="'+a.id+'" target="_blank" rel="noopener" href="https://wa.me/'+waNum(tel)+'" style="text-align:center;flex:1.4">Lembrete</a>':'')+
+    '<button class="sec" data-agedit="'+a.id+'" style="padding:8px">Editar</button>'+
+    '<button class="del" data-agdel="'+a.id+'">excluir</button></div></div>';
+  });
+  html+='<div class="row" style="margin-top:18px"><button class="sec" id="ag_close">Fechar</button></div>';
+  $('box').innerHTML=html;
+}
+function agForm(a){
+  agView='form';var isNew=!a;
+  a=a||{id:uid(),clientId:'',date:today(),hora:'',tipo:'',valor:'',pago:false,tema:'',status:'agendado'};
+  agEdit=a;
+  var cl=clients.slice().sort(function(x,y){return norm(x.nome)<norm(y.nome)?-1:1});
+  $('box').innerHTML='<h2 style="margin:0 0 4px">'+(isNew?'Novo agendamento':'Editar agendamento')+'</h2>'+
+  '<label>Consulente</label><select id="ag_cli"><option value="">Escolha…</option>'+cl.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome)+'</option>'}).join('')+'<option value="__novo">+ Novo consulente</option></select>'+
+  '<div id="ag_novo" style="display:none"><div class="row"><div><label>Nome</label><input id="ag_nome"></div><div><label>WhatsApp</label><input id="ag_tel" inputmode="tel"></div></div></div>'+
+  '<label>Tiragem (o valor preenche sozinho)</label><select id="ag_tipo">'+catOptions()+'</select><input id="ag_outra" placeholder="Nome da tiragem" style="display:none;margin-top:6px">'+
+  '<div class="row"><div><label>Valor (R$)</label><input id="ag_val" inputmode="decimal"></div><div><label>Data</label><input id="ag_date" type="date"></div></div>'+
+  '<label>Horário (opcional; vazio = fila após as 20h)</label><input id="ag_hora" type="time">'+
+  '<label style="display:flex;gap:8px;align-items:center;color:var(--tx);margin-top:12px"><input type="checkbox" id="ag_pago" style="width:auto"> Pix confirmado</label>'+
+  '<label>Tema / pergunta da cliente</label><textarea id="ag_tema"></textarea>'+
+  '<div class="row" style="margin-top:18px"><button id="ag_save">Salvar</button><button class="sec" id="ag_cancel">Voltar</button></div>';
+  if(a.clientId&&clients.some(function(c){return c.id===a.clientId}))$('ag_cli').value=a.clientId;
+  else if(a.nome){$('ag_cli').value='__novo';$('ag_novo').style.display='';$('ag_nome').value=a.nome;$('ag_tel').value=a.tel||''}
+  var known=CAT.some(function(c){return c.n===a.tipo});
+  if(a.tipo&&known)$('ag_tipo').value=a.tipo;else if(a.tipo){$('ag_tipo').value='__outra';$('ag_outra').style.display='';$('ag_outra').value=a.tipo}
+  $('ag_val').value=a.valor||'';$('ag_date').value=a.date;$('ag_hora').value=a.hora||'';$('ag_pago').checked=!!a.pago;$('ag_tema').value=a.tema||'';
+}
+function agSave(){
+  var cv=$('ag_cli').value,c;
+  if(cv==='__novo'){var nm=$('ag_nome').value.trim();if(!nm){alert('Coloque o nome do consulente.');return}
+    c={id:uid(),nome:nm,tel:$('ag_tel').value.trim(),nasc:'',retorno:'',obs:'',sessions:[]};save(c)}
+  else if(cv){c=clients.find(function(x){return x.id===cv})}
+  if(!c){alert('Escolha o consulente.');return}
+  var tp=$('ag_tipo').value==='__outra'?$('ag_outra').value.trim():$('ag_tipo').value;
+  if(!tp){alert('Escolha a tiragem.');return}
+  var d=$('ag_date').value;if(!d){alert('Escolha a data.');return}
+  var a=agEdit;a.clientId=c.id;a.nome=c.nome;a.tel=c.tel||'';a.date=d;a.hora=$('ag_hora').value;a.tipo=tp;
+  a.valor=$('ag_val').value.trim();a.pago=$('ag_pago').checked;a.tema=$('ag_tema').value.trim();a.status='agendado';
+  saveAg(a);drawAgenda();
+}
+function agDone(id){
+  var a=agenda.find(function(x){return x.id===id});if(!a)return;
+  var c=clients.find(function(x){return x.id===a.clientId});
+  c=c?JSON.parse(JSON.stringify(c)):{id:uid(),nome:a.nome,tel:a.tel||'',nasc:'',retorno:'',obs:'',sessions:[]};
+  c.sessions=c.sessions||[];
+  if(!c.sessions.some(function(s){return s.date===a.date&&s.tipo===a.tipo}))c.sessions.push({id:uid(),date:a.date,tipo:a.tipo,valor:a.valor||'',nota:a.tema||''});
+  save(c);a.clientId=c.id;a.status='feito';saveAg(a);drawAgenda();
+}
+function agMsg(a){
+  var nome=(a.nome||'').trim().split(/\s+/)[0]||'';
+  if(a.pago)return 'Oi, '+nome+'! Aqui é a Kiara 🌙\n\nSua leitura de *'+a.tipo+'* está confirmada para '+fmt(a.date)+' ✨ As leituras são feitas após as 20h, e você recebe a foto da mesa e os áudios explicativos aqui no WhatsApp.\n\nQualquer coisa é só me chamar 💜';
+  return 'Oi, '+nome+'! Aqui é a Kiara 🌙\n\nSua leitura de *'+a.tipo+'* está reservada para '+fmt(a.date)+' ✨ Para confirmar o seu lugar na fila, é só enviar o comprovante do Pix aqui 💜 As leituras são feitas após as 20h.';
+}
+document.addEventListener('click',function(e){
+  var t=e.target,b;
+  if(t.id==='agb'){openAgenda();return}
+  if(t.id==='ag_close'){closeModal();return}
+  if(t.id==='ag_new'){agForm(null);return}
+  if(t.id==='ag_cancel'){drawAgenda();return}
+  if(t.id==='ag_save'){agSave();return}
+  if((b=t.closest('[data-agdone]'))){agDone(b.dataset.agdone);return}
+  if((b=t.closest('[data-agedit]'))){agForm(agenda.find(function(x){return x.id===b.dataset.agedit}));return}
+  if((b=t.closest('[data-agdel]'))){if(confirm('Excluir este agendamento?')){removeAg(b.dataset.agdel);drawAgenda()}return}
+  if((b=t.closest('[data-agsend]'))){var a=agenda.find(function(x){return x.id===b.dataset.agsend});if(a){copyText(agMsg(a));b.textContent='Copiado ✓ cole lá'}return}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='ag_cli')$('ag_novo').style.display=e.target.value==='__novo'?'':'none';
+  if(e.target.id==='ag_tipo'){
+    var cc=CAT.find(function(c){return c.n===e.target.value});if(cc)$('ag_val').value=cc.v;
+    $('ag_outra').style.display=e.target.value==='__outra'?'':'none';
+  }
+});
+
+/* ---------- promoção mensal ---------- */
+function promoLink(c){
+  var nome=(c.nome||'').trim().split(/\s+/)[0]||'';
+  return 'https://wa.me/'+waNum(c.tel)+'?text='+encodeURIComponent(promoText.replace(/\{nome\}/g,nome));
+}
+function promoRows(){
+  var only=$('p_who').value==='voltar';
+  var list=clients.filter(function(c){var l=lastSess(c),n=l?days(l.date):null;return only?(n!==null&&n>=30):true});
+  list.sort(function(a,b){var la=lastSess(a),lb=lastSess(b);return ((la&&la.date)||'')<((lb&&lb.date)||'')?-1:1});
+  if(!list.length)return '<div class="empty">Ninguém nesta lista.</div>';
+  return list.map(function(c){
+    var l=lastSess(c),n=l?days(l.date):null;
+    return '<div class="sess"><div class="h"><div><b>'+esc(c.nome)+'</b><div class="meta">Último: '+(l?fmt(l.date)+' ('+ago(n)+')':'—')+'</div></div>'+
+    (c.tel?'<a class="wa" data-send="promo" data-cid="'+c.id+'" target="_blank" rel="noopener" href="https://wa.me/'+waNum(c.tel)+'">Copiar e abrir</a>':'<span class="meta">sem telefone</span>')+'</div></div>';
+  }).join('');
+}
+function openPromo(){
+  cur=null;promoOpen=true;
+  $('box').innerHTML='<h2 style="margin:0 0 4px">📣 Promoção mensal</h2>'+
+  '<div class="meta">Edite o texto todo mês. Onde estiver <b>{nome}</b>, entra o primeiro nome de cada pessoa. Toque em <b>Copiar e abrir</b> ao lado do nome: o texto da pessoa é copiado e o WhatsApp abre. É só colar e enviar.</div>'+
+  '<button class="sec" data-edit="1" style="margin-top:8px">✏️ Editar texto</button><label class="ed">Mensagem</label><textarea class="ed" id="p_text" style="min-height:260px">'+esc(promoText)+'</textarea>'+nameTools('p')+
+  '<div class="row ed" style="margin-top:8px"><button class="sec" id="p_reset">Voltar ao texto original</button><button class="sec" id="p_copy">Copiar texto</button></div>'+
+  '<label>Quem receber</label><select id="p_who"><option value="voltar">Sem atendimento há 30+ dias</option><option value="todos">Todos os consulentes</option></select>'+
+  '<div id="p_list"></div>'+
+  '<div class="row" style="margin-top:18px"><button class="sec" id="p_close">Fechar</button></div>';
+  $('p_list').innerHTML=promoRows();refreshTools('p',promoText);
+  $('modal').classList.add('open');
+}
+
+/* ---------- ferramentas de nome ---------- */
+function nameTools(pfx){
+  var cl=clients.slice().sort(function(a,b){return norm(a.nome)<norm(b.nome)?-1:1});
+  return '<div id="'+pfx+'_warn"></div><div class="ed" style="margin-top:8px"><button class="sec" data-ins="'+pfx+'">Inserir {nome} no cursor</button></div>'+
+  '<label>Ver como fica para</label><select id="'+pfx+'_pv">'+(cl.length?cl.map(function(c){return '<option value="'+c.id+'">'+esc(c.nome)+'</option>'}).join(''):'<option value="">(exemplo: Maria)</option>')+'</select>'+
+  '<div class="sess" id="'+pfx+'_prev" style="white-space:pre-wrap;font-size:14px"></div>';
+}
+function refreshTools(pfx,text){
+  if(!$(pfx+'_warn'))return;
+  var w='';
+  if(text.indexOf('{nome}')<0){
+    var m=/^\s*(?:oi|olá|ola|oie|e aí)[,!]?\s+([^\s,!.?]+)/i.exec(text);
+    w='<div class="meta" style="color:var(--warn);margin-top:8px">⚠️ O texto não tem {nome}, então o nome não muda de pessoa para pessoa.'+(m?' <button class="sec" style="margin-top:6px" data-fix="'+pfx+'" data-w="'+esc(m[1])+'">Trocar “'+esc(m[1])+'” por {nome}</button>':'')+'</div>';
+  }
+  $(pfx+'_warn').innerHTML=w;
+  var c=clients.find(function(x){return x.id===$(pfx+'_pv').value});
+  var nome=c?(c.nome||'').trim().split(/\s+/)[0]:'Maria';
+  $(pfx+'_prev').textContent=text.replace(/\{nome\}/g,nome);
+}
+function setTxt(pfx,v){
+  if(pfx==='p'){promoText=v;clearTimeout(window._pt);window._pt=setTimeout(savePromo,700);$('p_text').value=v;$('p_list').innerHTML=promoRows()}
+  else{tirTexts[tirSel]=v;clearTimeout(window._tt);window._tt=setTimeout(saveTir,700);$('t_text').value=v;$('t_list').innerHTML=tirRows()}
+  refreshTools(pfx,v);
+}
+
+/* ---------- copiar e abrir ---------- */
+function copyText(tx){
+  var ok=false;
+  try{var a=document.createElement('textarea');a.value=tx;a.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(a);a.focus();a.select();a.setSelectionRange(0,tx.length);ok=document.execCommand('copy');document.body.removeChild(a)}catch(e){}
+  if(!ok&&navigator.clipboard){try{navigator.clipboard.writeText(tx)}catch(e){}}
+}
+function sendText(kind,c){
+  var nome=(c.nome||'').trim().split(/\s+/)[0]||'';
+  return (kind==='promo'?promoText:tirText()).replace(/\{nome\}/g,nome);
+}
+
+/* ---------- tiragens ---------- */
+function tirRows(){
+  var only=$('t_who').value==='voltar',txt=tirText();
+  var list=clients.filter(function(c){var l=lastSess(c),n=l?days(l.date):null;return only?(n!==null&&n>=30):true});
+  list.sort(function(a,b){var la=lastSess(a),lb=lastSess(b);return ((la&&la.date)||'')<((lb&&lb.date)||'')?-1:1});
+  if(!list.length)return '<div class="empty">Ninguém nesta lista.</div>';
+  return list.map(function(c){
+    var l=lastSess(c),n=l?days(l.date):null,nome=(c.nome||'').trim().split(/\s+/)[0]||'';
+    var link='https://wa.me/'+waNum(c.tel||'')+'?text='+encodeURIComponent(txt.replace(/\{nome\}/g,nome));
+    return '<div class="sess"><div class="h"><div><b>'+esc(c.nome)+'</b><div class="meta">Último: '+(l?fmt(l.date)+' ('+ago(n)+')':'—')+'</div></div>'+
+    (c.tel?'<a class="wa" data-send="tir" data-cid="'+c.id+'" target="_blank" rel="noopener" href="https://wa.me/'+waNum(c.tel)+'">Copiar e abrir</a>':'<span class="meta">sem telefone</span>')+'</div></div>';
+  }).join('');
+}
+function openTir(){
+  cur=null;
+  $('box').innerHTML='<h2 style="margin:0 0 4px">💬 Tiragens</h2>'+
+  '<div class="meta">Escolha o texto, edite se quiser. Onde estiver <b>{nome}</b>, entra o primeiro nome de cada pessoa. Toque em <b>Copiar e abrir</b> ao lado do nome: o texto da pessoa é copiado e o WhatsApp abre. É só colar e enviar.</div>'+
+  '<label>Texto</label><select id="t_sel">'+TIR.map(function(x){return '<option value="'+x.id+'"'+(x.id===tirSel?' selected':'')+'>'+x.label+'</option>'}).join('')+'</select>'+
+  '<button class="sec" data-edit="1" style="margin-top:8px">✏️ Editar texto</button><label class="ed">Mensagem</label><textarea class="ed" id="t_text" style="min-height:240px">'+esc(tirText())+'</textarea>'+nameTools('t')+
+  '<div class="row ed" style="margin-top:8px"><button class="sec" id="t_reset">Voltar ao original</button><button class="sec" id="t_copy">Copiar texto</button></div>'+
+  '<label>Quem receber</label><select id="t_who"><option value="voltar">Sem atendimento há 30+ dias</option><option value="todos">Todos os consulentes</option></select>'+
+  '<div id="t_list"></div>'+
+  '<div class="row" style="margin-top:18px"><button class="sec" id="t_close">Fechar</button></div>';
+  $('t_list').innerHTML=tirRows();refreshTools('t',tirText());
+  $('modal').classList.add('open');
+}
+
+/* ---------- modal ---------- */
+function openClient(id){
+  var c=clients.find(function(x){return x.id===id})||{id:uid(),nome:'',tel:'',nasc:'',retorno:'',obs:'',sessions:[],_new:true};
+  cur=JSON.parse(JSON.stringify(c));
+  drawModal();$('modal').classList.add('open');
+}
+function drawModal(){
+  var c=cur,ss=(c.sessions||[]).slice().sort(function(a,b){return b.date<a.date?-1:1});
+  $('box').innerHTML=
+  '<h2 style="margin:0 0 4px">'+(c._new?'Novo consulente':esc(c.nome))+'</h2>'+
+  '<label>Nome</label><input id="f_nome" value="'+esc(c.nome)+'">'+
+  '<div class="row"><div><label>WhatsApp / telefone</label><input id="f_tel" inputmode="tel" value="'+esc(c.tel)+'" placeholder="11 99999-9999"></div>'+
+  '<div><label>Nascimento</label><input id="f_nasc" type="date" value="'+esc(c.nasc)+'"></div></div>'+
+  '<label>Voltar a contatar em</label><input id="f_ret" type="date" value="'+esc(c.retorno)+'">'+
+  '<label>Observações (temas, dúvidas recorrentes…)</label><textarea id="f_obs">'+esc(c.obs)+'</textarea>'+
+  '<h3>Atendimentos</h3>'+
+  '<div class="sess"><div class="row"><div><label style="margin-top:0">Data</label><input id="s_date" type="date" value="'+today()+'"></div>'+
+  '<div><label style="margin-top:0">Valor (R$)</label><input id="s_val" inputmode="decimal" placeholder="opcional"></div></div>'+
+  '<label>Tiragem (o valor preenche sozinho)</label><select id="s_tipo">'+catOptions()+'</select><input id="s_outra" placeholder="Nome da tiragem" style="display:none;margin-top:6px">'+
+  '<label>Anotações do atendimento</label><textarea id="s_nota" placeholder="O que foi visto, cartas, conselhos…"></textarea>'+
+  '<button class="sec" id="s_add" style="margin-top:8px;width:100%">+ Registrar atendimento</button></div>'+
+  ss.map(function(s){return '<div class="sess"><div class="h"><b>'+fmt(s.date)+' · '+esc(s.tipo)+(s.valor?' · R$ '+esc(s.valor):'')+'</b><button class="del" data-ds="'+s.id+'">excluir</button></div>'+(s.nota?'<div class="meta" style="white-space:pre-wrap;margin-top:4px">'+esc(s.nota)+'</div>':'')+'</div>'}).join('')+
+  '<div class="row" style="margin-top:18px"><button id="m_save">Salvar</button><button class="sec" id="m_close">Fechar</button></div>'+
+  (c._new?'':'<div style="text-align:center;margin-top:8px"><button class="del" id="m_del">Excluir consulente</button></div>');
+}
+function readFields(){
+  cur.nome=$('f_nome').value.trim();cur.tel=$('f_tel').value.trim();cur.nasc=$('f_nasc').value;
+  cur.retorno=$('f_ret').value;cur.obs=$('f_obs').value;
+}
+function closeModal(){$('modal').classList.remove('open');$('box').classList.remove('editing');cur=null}
+function commit(){
+  if(!cur.nome){alert('Coloque o nome do consulente.');return false}
+  var o=JSON.parse(JSON.stringify(cur));delete o._new;save(o);cur._new=false;return true;
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var sd=t.closest('[data-send]');
+  if(sd){var cc=clients.find(function(x){return x.id===sd.dataset.cid});if(cc){copyText(sendText(sd.dataset.send,cc));sd.textContent='Copiado ✓ cole lá'}return}
+  if(t.closest('[data-wa]'))return;
+  if(t.id==='add'){openClient(null);return}
+  if(t.id==='promo'){openPromo();return}
+  if(t.id==='imp'){openImp();return}
+  if(t.id==='imp_close'){closeModal();return}
+  if(t.id==='imp_go'){runImport();return}
+  if(t.id==='tir'){openTir();return}
+  if(t.id==='t_close'){closeModal();return}
+  if(t.id==='t_reset'){delete tirTexts[tirSel];saveTir();$('t_text').value=tirText();$('t_list').innerHTML=tirRows();return}
+  if(t.id==='t_copy'){var tt=$('t_text').value;if(navigator.clipboard){navigator.clipboard.writeText(tt).then(function(){t.textContent='Copiado ✓'}).catch(function(){$('t_text').select()})}else{$('t_text').select()}return}
+  if(t.id==='p_close'){promoOpen=false;closeModal();return}
+  if(t.id==='p_reset'){promoText=DEFAULT_PROMO;savePromo();$('p_text').value=promoText;$('p_list').innerHTML=promoRows();return}
+  if(t.id==='p_copy'){var tx=$('p_text').value;if(navigator.clipboard){navigator.clipboard.writeText(tx).then(function(){t.textContent='Copiado ✓'}).catch(function(){$('p_text').select()})}else{$('p_text').select()}return}
+  var ch=t.closest('[data-f]');if(ch){filter=ch.dataset.f;render();return}
+  var cd=t.closest('.card');if(cd){openClient(cd.dataset.id);return}
+  if(t.id==='m_close'||t.id==='modal'){promoOpen=false;closeModal();return}
+  if(t.id==='m_save'){readFields();if(commit())closeModal();return}
+  if(t.id==='s_add'){
+    readFields();
+    var d=$('s_date').value;if(!d){alert('Escolha a data do atendimento.');return}
+    var tp=$('s_tipo').value==='__outra'?$('s_outra').value.trim():$('s_tipo').value;
+    if(!tp){alert('Escolha a tiragem.');return}
+    cur.sessions=cur.sessions||[];
+    cur.sessions.push({id:uid(),date:d,tipo:tp,valor:$('s_val').value.trim(),nota:$('s_nota').value.trim()});
+    if(commit())drawModal();else cur.sessions.pop();
+    return;
+  }
+  if(t.dataset&&t.dataset.ds){
+    if(!confirm('Excluir este atendimento?'))return;
+    readFields();cur.sessions=cur.sessions.filter(function(s){return s.id!==t.dataset.ds});
+    if(!cur._new)commit();drawModal();return;
+  }
+  if(t.id==='m_del'){if(confirm('Excluir este consulente e todos os atendimentos?')){remove(cur.id);closeModal()}return}
+});
+$('q').addEventListener('input',render);
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var ed=t.closest('[data-edit]');
+  if(ed){var bx=$('box');bx.classList.toggle('editing');ed.textContent=bx.classList.contains('editing')?'Fechar edição':'✏️ Editar texto';return}
+  var ins=t.closest('[data-ins]');
+  if(ins){var pf=ins.dataset.ins,ta=$(pf+'_text'),i=ta.selectionStart||0,j=ta.selectionEnd||i;setTxt(pf,ta.value.slice(0,i)+'{nome}'+ta.value.slice(j));ta.focus();return}
+  var fx=t.closest('[data-fix]');
+  if(fx){var pf2=fx.dataset.fix,wd=fx.dataset.w;setTxt(pf2,$(pf2+'_text').value.split(wd).join('{nome}'));return}
+  if(t.id==='p_reset'||t.id==='t_reset'){setTimeout(function(){var pf3=t.id[0];refreshTools(pf3,$(pf3+'_text').value)},0)}
+});
+document.addEventListener('input',function(e){
+  if(e.target.id==='p_text'||e.target.id==='t_text')refreshTools(e.target.id[0],e.target.value);
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='p_pv'||e.target.id==='t_pv')refreshTools(e.target.id[0],$(e.target.id[0]+'_text').value);
+  if(e.target.id==='t_sel')setTimeout(function(){refreshTools('t',$('t_text').value)},0);
+});
+document.addEventListener('input',function(e){
+  if(e.target.id==='t_text'){tirTexts[tirSel]=e.target.value;clearTimeout(window._tt);window._tt=setTimeout(saveTir,700);$('t_list').innerHTML=tirRows()}
+  if(e.target.id==='p_text'){promoText=e.target.value;clearTimeout(window._pt);window._pt=setTimeout(savePromo,700);$('p_list').innerHTML=promoRows()}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='imp_file'){
+    var fs=Array.prototype.slice.call(e.target.files||[]);
+    Promise.all(fs.map(function(f){return f.text().then(function(t){return parseChat(t,f.name)})})).then(function(rs){impList=rs;drawImp()}).catch(function(){alert('Não consegui ler o arquivo. Use o .txt exportado do WhatsApp.')});
+    return;
+  }
+  if(e.target.id==='s_tipo'){
+    var cc=CAT.find(function(c){return c.n===e.target.value});
+    if(cc)$('s_val').value=cc.v;
+    $('s_outra').style.display=e.target.value==='__outra'?'':'none';
+  }
+  if(e.target.id==='p_who')$('p_list').innerHTML=promoRows();
+  if(e.target.id==='t_who')$('t_list').innerHTML=tirRows();
+  if(e.target.id==='t_sel'){tirSel=e.target.value;$('t_text').value=tirText();$('t_list').innerHTML=tirRows()}
+});
+render();init();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
