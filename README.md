@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/33222321/README.md)
 # 🔮 Meus Consulentes
 
 CRM simples para cartomante. Funciona direto no navegador e pode ser instalado no celular como um app (PWA), sem servidor, sem cadastro e sem mensalidade.
